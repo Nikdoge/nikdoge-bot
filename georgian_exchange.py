@@ -1,26 +1,12 @@
 #!/usr/bin/env python3
 
+import exchange_ricoge
+from datetime import datetime as dt
 #From rico.ge "currency buy sell" to georgian lari
 #buy - means exchange buys from me
 #sell - means exchange sell to me
-#Not convenient for me, but it is how it's organized on exchange
-DATA_DATE = '2022.05.08' #Date when data from exchange obtained
-RICOGE = '''USD 	3.0200 	3.0350
-EUR 	3.1850 	3.2050
-RUR 	0.0364 	0.0464
-ILS 	0.7640 	0.9040
-GBP 	3.7000 	3.7800
-TRY 	0.1530 	0.2230
-CHF 	3.0220 	3.1020
-CAD 	2.2400 	2.3600
-AED 	0.6740 	0.8240
-AMD 	0.0044 	0.0074
-AZN 	1.7110 	1.8110'''.replace('RUR','RUB',1).splitlines()
-#Damn ricoge
-#RUR (810) — российский рубль до деноминации 1998 года;
-#RUB (643) — российский рубль после деноминации 1998 года;
+
 BASE_CURRENCY = 'GEL'
-RICOGE.append(f'{BASE_CURRENCY} 1 1') #Adding BASE_CURRENCY to table for consistency
 EXCHANGE_INFO = None
 ROUTE_TOO_LONG = 15 #maximum lenght of crossrate route: if 4, then "1000 RUB GEL USD EUR" is maximum
 
@@ -31,7 +17,10 @@ def process_exchange_info(exchange_text):
         exchange_info[line[0]] = {'buy':float(line[1]),'sell':float(line[2])}
     return exchange_info
 
-EXCHANGE_INFO = process_exchange_info(RICOGE)
+#EXCHANGE_INFO = process_exchange_info(RICOGE)
+EXCHANGE_INFO,DATA_DATE = exchange_ricoge.get_data() #time rules from inside do not work if this file is imported in final script once with this call
+EXCHANGE_INFO[BASE_CURRENCY] = {'buy':1,'sell':1} #Adding BASE_CURRENCY to table for consistency
+DATA_DATE = dt.fromisoformat(DATA_DATE).strftime('%Y-%m-%d %H:%M UTC') 
 
 def analyze_input_string(string):
     DEFAULT_CURRENCY = 'RUB'
@@ -60,7 +49,7 @@ def analyze_input_string(string):
         listing = string.split()
     else:
         for letter in string:
-            if letter.isdigit():
+            if letter.isdigit(): #TO DO: . and , should also pass - it can be decimal fraction like 0.10 or 0,25
                 listing[0] += letter
             else:
                 break
@@ -130,7 +119,7 @@ def process_request(amount=float(), currencies=list()):
     return result_string
 
 def help():
-    return f"""georgian_exchange gets string like "1000 RUB GEL" or "500 GEL RUB" and converts specified amount from one currency (to or through georgian lari - GEL) to another by best exchange rate known from rico.ge at {DATA_DATE} (will be reloading automaticly later).
+    return f"""georgian_exchange gets string like "1000 RUB GEL" or "500 GEL RUB" and converts specified amount from one currency (to or through georgian lari - GEL) to another by best exchange rate known from rico.ge at {dt.fromisoformat(DATA_DATE).strftime('%Y-%m-%d %H:%M UTC')}.
 
 Variants of request:
 "1000" = "1000 RUB GEL" — Default convertation route is RUB -> GEL;
@@ -142,7 +131,7 @@ Known currencies: GEL (₾,lari), USD ($,dollar), EUR (€,euro), RUB (₽,ruble
 """
 
 def help_ru():
-    return f"""georgian_exchange получает строку типа "1000 RUB GEL" или "500 GEL RUB" и конвертирует указанное количество из одной валюты (к или через грузинский лари - GEL) в другую по наилучшему известному курсу с rico.ge на {DATA_DATE} (потом будет обновляться автоматически).
+    return f"""georgian_exchange получает строку типа "1000 RUB GEL" или "500 GEL RUB" и конвертирует указанное количество из одной валюты (к или через грузинский лари - GEL) в другую по наилучшему известному курсу с rico.ge на {dt.fromisoformat(DATA_DATE).strftime('%Y-%m-%d %H:%M UTC')}.
 
 Варианты запроса:
 "1000" = "1000 RUB GEL" — Маршрут конвертации по умолчанию RUB -> GEL;
@@ -157,11 +146,14 @@ def help_ru():
 if __name__ == '__main__':
     import sys
     string = ' '.join(sys.argv[1:])
-    print(process_request(*analyze_input_string(string)))
+    print(process_request(*analyze_input_string(string)),'based on info from',DATA_DATE)
 
 def georgian_exchange(string=str()):
     """
     E.g.: "1000 RUB GEL" or "500 GEL RUB" or "1500 EUR GEL"
     """
+    EXCHANGE_INFO,DATA_DATE = exchange_ricoge.get_data() 
+    EXCHANGE_INFO[BASE_CURRENCY] = {'buy':1,'sell':1} #Adding BASE_CURRENCY to table for consistency
+    DATA_DATE = dt.fromisoformat(DATA_DATE).strftime('%Y-%m-%d %H:%M UTC') 
     return process_request(*analyze_input_string(string))
 
