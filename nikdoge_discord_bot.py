@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+
+# bot.py
+import discord, asyncio
+from libs import nikdoge
+from discord.ext import commands
+import datetime as dt
+
+#_ = nikdoge.undump_json('nikdoge_discord_bot.json')
+#TOKEN = _['DISCORD_TOKEN']
+#GUILD = _['DISCORD_GUILD']
+
+#client = discord.Client()
+client = commands.Bot(command_prefix='.')
+
+@client.event
+async def on_ready():
+    #guild = discord.utils.get(client.guilds, id=int(GUILD))
+    #if not guild:
+    #    print('Unable to find guild')
+    #    exit()
+
+    print(f'{client.user} is connected to the following guilds:')
+    for guild in client.guilds:
+        print(f'{guild.id}: {guild.name}')
+
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+
+    if message.content.startswith('.help3') or message.content.startswith('.nikdogebot') or message.content.startswith('.nikdoge bot'):
+        help_text_en = """Nikdoge Bot is only on the start of its way to the bright future, and atm it's pretty dumb
+        .help3 .nikdogebot - help on Nikdoge Bot
+        .woofe - answers "woofe indeed"
+        .rokk - prints rokk ebol
+        .zdravstvuite - says Hello in RYTP style in your voice channel
+        .georgian - prints georgian letters
+        .exchange .обмен - georgian exchange"""
+        help_text_ru = """Nikdoge Bot только в начале своего пути к светлому будущему, и пока что весьма мало полезен
+        .help3 .nikdogebot - помощь по Nikdoge Bot
+        .woofe - отвечает "woofe indeed"
+        .rokk - печатает весь рокк ебол
+        .zdravstvuite - говорит Здравствуйте в RYTP-манере в твой голосовой канал
+        .georgian - печатает грузинский алфавит
+        .exchange .обмен - грузинский обменник (без аргументов печатает помощь по команде)"""
+        embed=discord.Embed(
+            title="Nikdoge Bot help", 
+            #url="https://nikdoge.ru/", 
+            description=help_text_ru, 
+            color=0xFF5733)
+        await message.channel.send(embed=embed)
+        return
+
+    if message.content.startswith('.exchange'):
+        import georgian_exchange
+        analyze = message.content.split('.exchange ',1)
+        send_help = False
+        if len(analyze)<2:
+            send_help = True
+        elif 'help' in analyze[1]:
+            send_help = True
+        else:
+            response = georgian_exchange.georgian_exchange(analyze[1])
+            await message.channel.send(response)
+        if send_help:
+            response = 'Georgian exchange\nCommand ' + georgian_exchange.help().replace('georgian_exchange','.exchange')
+            embed=discord.Embed(description=response, color=0xFF5733)
+            await message.channel.send(embed=embed)
+        return
+
+    if message.content.startswith('.обмен'):
+        import georgian_exchange
+        analyze = message.content.split('.обмен ',1)
+        send_help = False
+        if len(analyze)<2:
+            send_help = True
+        elif 'help' in analyze[1]:
+            send_help = True
+        else:
+            response = georgian_exchange.georgian_exchange(analyze[1])
+            await message.channel.send(response)
+        if send_help:
+            response = 'Грузинский обменник\nКоманда ' + georgian_exchange.help_ru().replace('georgian_exchange','.обмен')
+            embed=discord.Embed(description=response, color=0xFF5733)
+            await message.channel.send(embed=embed)
+        return
+
+    if message.content.startswith('.woofe'):
+        response = 'woofe indeed'
+        await message.channel.send(response)
+        return
+
+    if message.content.startswith('.rokk'):
+        response = '''
+Р О К К
+Е Б О Л
+М У П Ю
+О В И Ч
+Н И R Е
+Т👠🔑Й
+        '''
+        await message.channel.send(response)
+        return
+    
+    """
+    if message.content.startswith('.dosvidania'):
+        print('zdravstvuite called')
+        user = message.author
+        channel = None
+        # only play music if user is in a voice channel
+        if user.voice != None:
+            voice_channel=user.voice.channel
+            # grab user's voice channel
+            channel = voice_channel.name
+            print('User is in channel: '+ channel)
+            await voice_channel.disconnect()
+        else:
+            await print('User is not in a channel.')
+    """
+
+    if message.content.startswith('.zdravstvuite'):
+        print('zdravstvuite called')
+        user = message.author
+        # only play music if user is in a voice channel
+        if user.voice != None:
+            voice_channel=user.voice.channel
+            # grab user's voice channel
+            print(f"{message.created_at.isoformat()}: {user.nick} in {voice_channel.name}")
+            # create StreamPlayer
+            vc = await voice_channel.connect()
+            vc.play(discord.FFmpegPCMAudio(source='zdravstvuite.mp3', executable="C:/Program Files/ffmpeg/bin/ffmpeg.exe"), after=lambda e: print('done', e))
+            while vc.is_playing():
+                await asyncio.sleep(1)
+            # disconnect after the player has finished
+            vc.stop()
+            await vc.disconnect()
+        else:
+            await print(f"{message.created_at.isoformat()}: {user.nick} not in voice channel")
+        return
+
+    if message.content.startswith('.georgian'):
+        response = '''Ა а, Ბ б, Გ г, Დ д, Ე э, Ვ в, Ზ з, Ჱ эй, Თ тх, Ი и, Კ к, Ლ л, Მ м, Ნ н, Ო о, Პ п, Ჟ ж, Რ р, Ს с, Ტ т, Უ у, Ფ пх, Ქ кх, Ღ гх, Ყ q, Შ ш, Ჩ ч, Ც ц, Ძ дз, Წ цъ, Ჭ чъ, Ხ х, Ჯ дж'''
+        await message.channel.send(response)
+        return
+
+    
+
+'''
+@client.command(name='zdravstvuite')
+async def zdravstvuite(ctx):
+    print('zdravstvuite called')
+    user=ctx.author
+    channel=None
+    # only play music if user is in a voice channel
+    if user.voice != None:
+        voice_channel=user.voice.channel
+        # grab user's voice channel
+        channel=voice_channel.name
+        print('User is in channel: '+ channel)
+        # create StreamPlayer
+        vc = await voice_channel.connect()
+        player = vc.create_ffmpeg_player('zdravstvuite.mp3', after=lambda: print('done'))
+        player.start()
+        while not player.is_done():
+            await asyncio.sleep(1)
+        # disconnect after the player has finished
+        player.stop()
+        await vc.disconnect()
+    else:
+        await print('User is not in a channel.')
+'''
+
+start_timestamp = dt.utcnow().isoformat()
+print(f'[{start_timestamp}] Starting Nikdoge Discord bot')
+client.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'])
