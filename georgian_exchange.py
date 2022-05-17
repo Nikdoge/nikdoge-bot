@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 import exchange_ricoge
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta as td
 #From rico.ge "currency buy sell" to georgian lari
 #buy - means exchange buys from me
 #sell - means exchange sell to me
 
 BASE_CURRENCY = 'GEL'
 EXCHANGE_INFO = None
+DATA_DATE = None
+LAST_UPDATED = None
+TIME_TO_CACHE = 5*60 #in seconds, how long to cache exchange info, received from feed module
 ROUTE_TOO_LONG = 15 #maximum lenght of crossrate route: if 4, then "1000 RUB GEL USD EUR" is maximum
 
 def process_exchange_info(exchange_text):
@@ -18,9 +21,30 @@ def process_exchange_info(exchange_text):
     return exchange_info
 
 #EXCHANGE_INFO = process_exchange_info(RICOGE)
-EXCHANGE_INFO,DATA_DATE = exchange_ricoge.get_data() #time rules from inside do not work if this file is imported in final script once with this call
-EXCHANGE_INFO[BASE_CURRENCY] = {'buy':1,'sell':1} #Adding BASE_CURRENCY to table for consistency
-DATA_DATE = dt.fromisoformat(DATA_DATE).strftime('%Y-%m-%d %H:%M UTC') 
+
+def get_exchange_data():
+    timestamp_now = dt.utcnow()
+    exchange_data,timestamp,last_updated = EXCHANGE_INFO,DATA_DATE,LAST_UPDATED
+
+    if (exchange_data == None
+    or (last_updated != None and timestamp_now > last_updated + td(seconds=TIME_TO_CACHE))):
+        exchange_data,timestamp = exchange_ricoge.get_data() #time rules from inside do not work if this file is imported in final script once with this call
+        exchange_data[BASE_CURRENCY] = {'buy':1,'sell':1} #Adding BASE_CURRENCY to table for consistency
+        last_updated = dt.utcnow()
+
+    return exchange_data,timestamp,last_updated
+
+EXCHANGE_INFO,DATA_DATE,LAST_UPDATED = get_exchange_data()
+
+def get_table():
+    answer = f"rico.ge {dt.fromisoformat(DATA_DATE).strftime('%Y-%m-%d %H:%M UTC')}"+'\n'
+    answer += f'CURRENCY:  buy({BASE_CURRENCY})  sell({BASE_CURRENCY})\n'
+    for k,v in EXCHANGE_INFO.items() :
+        if k == BASE_CURRENCY: break
+        string = f"{k}:  {str(v['buy'])}  {str(v['sell'])}\n"
+        answer += string
+
+    return answer
 
 def analyze_input_string(string):
     DEFAULT_CURRENCY = 'RUB'
@@ -152,8 +176,6 @@ def georgian_exchange(string=str()):
     """
     E.g.: "1000 RUB GEL" or "500 GEL RUB" or "1500 EUR GEL"
     """
-    EXCHANGE_INFO,DATA_DATE = exchange_ricoge.get_data() 
-    EXCHANGE_INFO[BASE_CURRENCY] = {'buy':1,'sell':1} #Adding BASE_CURRENCY to table for consistency
-    DATA_DATE = dt.fromisoformat(DATA_DATE).strftime('%Y-%m-%d %H:%M UTC') 
+    EXCHANGE_INFO,DATA_DATE,LAST_UPDATED = get_exchange_data()
     return process_request(*analyze_input_string(string))
 
