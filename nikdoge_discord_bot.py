@@ -141,7 +141,7 @@ async def on_message(message):
         return
 
     if message.content.startswith('.georgian'):
-        response = '''Ა а, Ბ б, Გ г, Დ д, Ე э, Ვ в, Ზ з, Ჱ эй, Თ тх, Ი и, Კ к, Ლ л, Მ м, Ნ н, Ო о, Პ п, Ჟ ж, Რ р, Ს с, Ტ т, Უ у, Ფ пх, Ქ кх, Ღ гх, Ყ q, Შ ш, Ჩ ч, Ც ц, Ძ дз, Წ цъ, Ჭ чъ, Ხ х, Ჯ дж'''
+        response = '''Ა а, Ბ б, Გ г, Დ д, Ე э, Ვ в, Ზ з, Თ т, Ი и, Კ к', Ლ л, Მ м, Ნ н, Ო о, Პ п', Ჟ ж, Რ р, Ს с, Ტ т', Უ у, Ფ п, Ქ к, Ღ гх, Ყ кх, Შ ш, Ჩ ч, Ც ц, Ძ дз, Წ ц', Ჭ ч', Ხ хъ, Ჯ дж, Ჰ х'''
         await message.channel.send(response)
         return
 
