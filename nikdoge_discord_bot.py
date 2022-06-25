@@ -4,8 +4,9 @@
 import discord, asyncio
 from libs import nikdoge
 from discord.ext import commands
-import datetime as dt
+from datetime import datetime as dt
 
+FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
 #_ = nikdoge.undump_json('nikdoge_discord_bot.json')
 #TOKEN = _['DISCORD_TOKEN']
 #GUILD = _['DISCORD_GUILD']
@@ -130,7 +131,7 @@ async def on_message(message):
             print(f"{message.created_at.isoformat()}: {user.nick} in {voice_channel.name}")
             # create StreamPlayer
             vc = await voice_channel.connect()
-            vc.play(discord.FFmpegPCMAudio(source='zdravstvuite.mp3', executable="C:/Program Files/ffmpeg/bin/ffmpeg.exe"), after=lambda e: print('done', e))
+            vc.play(discord.FFmpegPCMAudio(source='zdravstvuite.mp3', executable=FFMPEG_EXECUTABLE), after=lambda e: print('done', e))
             while vc.is_playing():
                 await asyncio.sleep(1)
             # disconnect after the player has finished

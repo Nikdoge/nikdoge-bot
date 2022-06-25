@@ -1,6 +1,6 @@
 import telebot
 from libs import nikdoge
-import datetime as dt
+from datetime import datetime as dt
 
 # Creating bot instance
 bot = telebot.TeleBot(nikdoge.undump_json('nikdoge_bot_settings.json')['TELEGRAM_TOKEN'])

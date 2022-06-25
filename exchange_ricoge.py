@@ -66,11 +66,11 @@ def get_data():
     except FileNotFoundError:
         saved_content = None
     
+    timestamp_now = dt.utcnow()
     if (saved_content 
     and 'timestamp' in saved_content
     and 'update attempt timestamp' in saved_content
     and 'data' in saved_content):
-        timestamp_now = dt.utcnow()
         timestamp_upd_atmpt = dt.fromisoformat(saved_content['update attempt timestamp'])
         if timestamp_now > timestamp_upd_atmpt + td(seconds=OFFSET):
             #Time passed
