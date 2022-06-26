@@ -4,10 +4,22 @@ import urllib3
 from bs4 import BeautifulSoup
 from libs import nikdoge
 from datetime import timedelta as td, datetime as dt
+import logging
 
 OFFSET = 40*60 #in seconds, after which time to try reload data from online
 SAVE_FILE_NAME = 'exchange_ricoge.json'
 ONLINE_RESOURCE = 'https://www.rico.ge'
+FILENAME_LOG = 'nikdoge_bot.log'
+
+logging.basicConfig(
+    level = logging.INFO,
+    format = '%(asctime)s %(name)s[%(levelname)s]: %(message)s',
+    handlers = [
+        logging.FileHandler(FILENAME_LOG),
+        logging.StreamHandler()
+    ]
+)
+log = logging.getLogger('Dogger')
 
 def get_data_online():
     exchange_data = None
@@ -19,10 +31,10 @@ def get_data_online():
     try:
         resp = http.request('GET', url)
     except urllib3.exceptions.MaxRetryError:
-        print('Failed to download info from ricoge, data will not be updated')
+        log.info('Failed to download info from ricoge, data will not be updated')
         return exchange_data, timestamp #fail connecting
     if resp.status != 200: 
-        print('Failed to download info from ricoge, data will not be updated')
+        log.info('Failed to download info from ricoge, data will not be updated')
         return exchange_data, timestamp #fail connecting
 
     #transforming
@@ -43,7 +55,7 @@ def get_data_online():
             fail += 1
     #also good idea to check for digits and availability of usd and eur
     if fail > 0:
-        print('Data from ricoge appears to be broken')
+        log.info('Data from ricoge appears to be broken')
         return exchange_data, timestamp
 
     #prepare info to return
@@ -74,15 +86,15 @@ def get_data():
         timestamp_upd_atmpt = dt.fromisoformat(saved_content['update attempt timestamp'])
         if timestamp_now > timestamp_upd_atmpt + td(seconds=OFFSET):
             #Time passed
-            print(f'[{timestamp_now.isoformat()}] It came time to update ricoge data: downloaded and stored')
+            log.info('It came time to update ricoge data: downloaded and stored')
             exchange_data, timestamp = get_data_online()
             save_data(exchange_data, timestamp)
         else:
             #Time didn't pass
-            print(f"[{timestamp_now.isoformat()}] Getting ricoge info from file, because time to update data didn't come yet")
+            log.info("Getting ricoge info from file, because time to update data didn't come yet")
             exchange_data,timestamp = saved_content['data'],saved_content['timestamp']
     else: 
-        print(f'[{timestamp_now.isoformat()}] Found no stored ricoge data: downloaded and stored')
+        log.info('Found no stored ricoge data: downloaded and stored')
         exchange_data,timestamp = get_data_online()  
         save_data(exchange_data, timestamp)
     return exchange_data,timestamp
@@ -115,4 +127,3 @@ def save_data(exchange_data,timestamp):
 
 if __name__ == '__main__':
     exchange_data,timestamp = get_data()
-    print()

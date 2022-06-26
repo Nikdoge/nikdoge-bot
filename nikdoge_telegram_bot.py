@@ -1,9 +1,20 @@
 import telebot
 from libs import nikdoge
 from datetime import datetime as dt
+import logging
 
-# Creating bot instance
-bot = telebot.TeleBot(nikdoge.undump_json('nikdoge_bot_settings.json')['TELEGRAM_TOKEN'])
+FILENAME_LOG = 'nikdoge_bot.log'
+
+logging.basicConfig(
+    level = logging.INFO,
+    format = '%(asctime)s %(name)s[%(levelname)s]: %(message)s',
+    handlers = [
+        logging.FileHandler(FILENAME_LOG),
+        logging.StreamHandler()
+    ]
+)
+log = logging.getLogger('Dogger')
+bot = telebot.TeleBot(nikdoge.undump_json('nikdoge_bot_settings.json')['TELEGRAM_TOKEN']) # Creating bot instance
 
 @bot.message_handler(commands=["start","help"])
 def start(message, res=False):
@@ -52,6 +63,5 @@ def exchange_ru(message, res=False):
 #    bot.send_message(message.chat.id, f'{message.text}? Что бы это могло значить?')
 
 # Launch the bot
-start_timestamp = dt.utcnow().isoformat()
-print(f'[{start_timestamp}] Starting Nikdoge Telegram bot')
+log.info('Starting Nikdoge Telegram bot')
 bot.polling(none_stop=True, interval=0)

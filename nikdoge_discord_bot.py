@@ -5,25 +5,27 @@ import discord, asyncio
 from libs import nikdoge
 from discord.ext import commands
 from datetime import datetime as dt
+import logging
 
 FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
-#_ = nikdoge.undump_json('nikdoge_discord_bot.json')
-#TOKEN = _['DISCORD_TOKEN']
-#GUILD = _['DISCORD_GUILD']
+FILENAME_LOG = 'nikdoge_bot.log'
 
-#client = discord.Client()
+logging.basicConfig(
+    level = logging.INFO,
+    format = '%(asctime)s %(name)s[%(levelname)s]: %(message)s',
+    handlers = [
+        logging.FileHandler(FILENAME_LOG),
+        logging.StreamHandler()
+    ]
+)
+log = logging.getLogger('Dogger')
 client = commands.Bot(command_prefix='.')
 
 @client.event
 async def on_ready():
-    #guild = discord.utils.get(client.guilds, id=int(GUILD))
-    #if not guild:
-    #    print('Unable to find guild')
-    #    exit()
-
-    print(f'{client.user} is connected to the following guilds:')
+    log.info(f'{client.user} is connected to the following guilds:')
     for guild in client.guilds:
-        print(f'{guild.id}: {guild.name}')
+        log.info(f'{guild.id}: {guild.name}')
 
 
 @client.event
@@ -47,9 +49,8 @@ async def on_message(message):
         .georgian - печатает грузинский алфавит
         .exchange .обмен - грузинский обменник (без аргументов печатает помощь по команде)"""
         embed=discord.Embed(
-            title="Nikdoge Bot help", 
-            #url="https://nikdoge.ru/", 
-            description=help_text_ru, 
+            title="Nikdoge Bot help",
+            description=help_text_ru,
             color=0xFF5733)
         await message.channel.send(embed=embed)
         return
@@ -95,50 +96,34 @@ async def on_message(message):
 
     if message.content.startswith('.rokk'):
         response = '''
-Р О К К
-Е Б О Л
-М У П Ю
-О В И Ч
-Н И R Е
-Т👠🔑Й
+        Р О К К
+        Е Б О Л
+        М У П Ю
+        О В И Ч
+        Н И R Е
+        Т👠🔑Й
         '''
         await message.channel.send(response)
         return
-    
-    """
-    if message.content.startswith('.dosvidania'):
-        print('zdravstvuite called')
-        user = message.author
-        channel = None
-        # only play music if user is in a voice channel
-        if user.voice != None:
-            voice_channel=user.voice.channel
-            # grab user's voice channel
-            channel = voice_channel.name
-            print('User is in channel: '+ channel)
-            await voice_channel.disconnect()
-        else:
-            await print('User is not in a channel.')
-    """
 
     if message.content.startswith('.zdravstvuite'):
-        print('zdravstvuite called')
+        log.info('zdravstvuite called')
         user = message.author
         # only play music if user is in a voice channel
         if user.voice != None:
             voice_channel=user.voice.channel
             # grab user's voice channel
-            print(f"{message.created_at.isoformat()}: {user.nick} in {voice_channel.name}")
+            log.info(f"{message.created_at.isoformat()}: {user.nick} in {voice_channel.name}")
             # create StreamPlayer
             vc = await voice_channel.connect()
-            vc.play(discord.FFmpegPCMAudio(source='zdravstvuite.mp3', executable=FFMPEG_EXECUTABLE), after=lambda e: print('done', e))
+            vc.play(discord.FFmpegPCMAudio(source='zdravstvuite.mp3', executable=FFMPEG_EXECUTABLE), after=lambda e: log.info('done', e))
             while vc.is_playing():
                 await asyncio.sleep(1)
             # disconnect after the player has finished
             vc.stop()
             await vc.disconnect()
         else:
-            await print(f"{message.created_at.isoformat()}: {user.nick} not in voice channel")
+            await log.info(f"{message.created_at.isoformat()}: {user.nick} not in voice channel")
         return
 
     if message.content.startswith('.georgian'):
@@ -146,33 +131,6 @@ async def on_message(message):
         await message.channel.send(response)
         return
 
-    
 
-'''
-@client.command(name='zdravstvuite')
-async def zdravstvuite(ctx):
-    print('zdravstvuite called')
-    user=ctx.author
-    channel=None
-    # only play music if user is in a voice channel
-    if user.voice != None:
-        voice_channel=user.voice.channel
-        # grab user's voice channel
-        channel=voice_channel.name
-        print('User is in channel: '+ channel)
-        # create StreamPlayer
-        vc = await voice_channel.connect()
-        player = vc.create_ffmpeg_player('zdravstvuite.mp3', after=lambda: print('done'))
-        player.start()
-        while not player.is_done():
-            await asyncio.sleep(1)
-        # disconnect after the player has finished
-        player.stop()
-        await vc.disconnect()
-    else:
-        await print('User is not in a channel.')
-'''
-
-start_timestamp = dt.utcnow().isoformat()
-print(f'[{start_timestamp}] Starting Nikdoge Discord bot')
+log.info('Starting Nikdoge Discord bot')
 client.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'])

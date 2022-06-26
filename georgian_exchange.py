@@ -2,16 +2,29 @@
 
 import exchange_ricoge
 from datetime import datetime as dt, timedelta as td
+import logging
+
 #From rico.ge "currency buy sell" to georgian lari
 #buy - means exchange buys from me
 #sell - means exchange sell to me
 
 BASE_CURRENCY = 'GEL'
+TIME_TO_CACHE = 5*60 #in seconds, how long to cache exchange info, received from feed module
+ROUTE_TOO_LONG = 15 #maximum lenght of crossrate route: if 4, then "1000 RUB GEL USD EUR" is maximum
 EXCHANGE_INFO = None
 DATA_DATE = None
 LAST_UPDATED = None
-TIME_TO_CACHE = 5*60 #in seconds, how long to cache exchange info, received from feed module
-ROUTE_TOO_LONG = 15 #maximum lenght of crossrate route: if 4, then "1000 RUB GEL USD EUR" is maximum
+FILENAME_LOG = 'nikdoge_bot.log'
+
+logging.basicConfig(
+    level = logging.INFO,
+    format = '%(asctime)s %(name)s[%(levelname)s]: %(message)s',
+    handlers = [
+        logging.FileHandler(FILENAME_LOG),
+        logging.StreamHandler()
+    ]
+)
+log = logging.getLogger('Dogger')
 
 def process_exchange_info(exchange_text):
     exchange_info = dict()
@@ -170,7 +183,7 @@ def help_ru():
 if __name__ == '__main__':
     import sys
     string = ' '.join(sys.argv[1:])
-    print(process_request(*analyze_input_string(string)),'based on info from',DATA_DATE)
+    log.info(process_request(*analyze_input_string(string)),'based on info from',DATA_DATE)
 
 def georgian_exchange(string=str()):
     """
