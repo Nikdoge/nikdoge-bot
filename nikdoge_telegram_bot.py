@@ -1,4 +1,6 @@
 import telebot
+import requests
+import time
 from libs import nikdoge
 from datetime import datetime as dt
 
@@ -54,4 +56,10 @@ def exchange_ru(message, res=False):
 # Launch the bot
 start_timestamp = dt.utcnow().isoformat()
 print(f'[{start_timestamp}] Starting Nikdoge Telegram bot')
-bot.polling(none_stop=True, interval=0)
+while True:
+    try:
+        bot.polling(none_stop=True, interval=0)
+    except requests.exceptions.ReadTimeout:
+        print("requests.exceptions.ReadTimeout exception happened, maybe write something in logs")
+        time.sleep(10)
+        pass
