@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 # bot.py
-import discord, asyncio
+import discord
+import asyncio
 from libs import nikdoge
 from discord.ext import commands
 from datetime import datetime as dt
 import logging
+import georgian_exchange
 
 FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
 FILENAME_LOG = 'nikdoge_bot.log'
@@ -20,6 +22,7 @@ logging.basicConfig(
 )
 log = logging.getLogger('Dogger')
 client = commands.Bot(command_prefix='.')
+exch = georgian_exchange.Exchange()
 
 @client.event
 async def on_ready():
@@ -56,7 +59,6 @@ async def on_message(message):
         return
 
     if message.content.startswith('.exchange'):
-        import georgian_exchange
         analyze = message.content.split('.exchange ',1)
         send_help = False
         if len(analyze)<2:
@@ -64,16 +66,15 @@ async def on_message(message):
         elif 'help' in analyze[1]:
             send_help = True
         else:
-            response = georgian_exchange.georgian_exchange(analyze[1])
+            response = exch.georgian_exchange(analyze[1])
             await message.channel.send(response)
         if send_help:
-            response = 'Georgian exchange\nCommand ' + georgian_exchange.help().replace('georgian_exchange','.exchange')
+            response = 'Georgian exchange\nCommand ' + exch.help().replace('georgian_exchange','.exchange')
             embed=discord.Embed(description=response, color=0xFF5733)
             await message.channel.send(embed=embed)
         return
 
     if message.content.startswith('.обмен'):
-        import georgian_exchange
         analyze = message.content.split('.обмен ',1)
         send_help = False
         if len(analyze)<2:
@@ -81,10 +82,10 @@ async def on_message(message):
         elif 'help' in analyze[1]:
             send_help = True
         else:
-            response = georgian_exchange.georgian_exchange(analyze[1])
+            response = exch.georgian_exchange(analyze[1])
             await message.channel.send(response)
         if send_help:
-            response = 'Грузинский обменник\nКоманда ' + georgian_exchange.help_ru().replace('georgian_exchange','.обмен')
+            response = 'Грузинский обменник\nКоманда ' + exch.help_ru().replace('georgian_exchange','.обмен')
             embed=discord.Embed(description=response, color=0xFF5733)
             await message.channel.send(embed=embed)
         return
