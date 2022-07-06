@@ -7,7 +7,7 @@ from libs import nikdoge
 from discord.ext import commands
 from datetime import datetime as dt
 import logging
-import georgian_exchange
+import exchange_handler
 
 FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
 FILENAME_LOG = 'nikdoge_bot.log'
@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 log = logging.getLogger('Dogger')
 client = commands.Bot(command_prefix='.')
-exch = georgian_exchange.Exchange()
+exch = exchange_handler.Exchange()
 
 @client.event
 async def on_ready():

@@ -4,7 +4,7 @@ import time
 from libs import nikdoge
 from datetime import datetime as dt
 import logging
-import georgian_exchange
+import exchange_handler
 
 FILENAME_LOG = 'nikdoge_bot.log'
 
@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 log = logging.getLogger('Dogger')
 bot = telebot.TeleBot(nikdoge.undump_json('nikdoge_bot_settings.json')['TELEGRAM_TOKEN']) # Creating bot instance
-exch = georgian_exchange.Exchange()
+exch = exchange_handler.Exchange()
 
 @bot.message_handler(commands=["start","help"])
 def start(message, res=False):
