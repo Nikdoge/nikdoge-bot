@@ -3,9 +3,22 @@ import requests
 import time
 from libs import nikdoge
 from datetime import datetime as dt
+import logging
+import georgian_exchange
 
-# Creating bot instance
-bot = telebot.TeleBot(nikdoge.undump_json('nikdoge_bot_settings.json')['TELEGRAM_TOKEN'])
+FILENAME_LOG = 'nikdoge_bot.log'
+
+logging.basicConfig(
+    level = logging.INFO,
+    format = '%(asctime)s %(name)s[%(levelname)s]: %(message)s',
+    handlers = [
+        logging.FileHandler(FILENAME_LOG),
+        logging.StreamHandler()
+    ]
+)
+log = logging.getLogger('Dogger')
+bot = telebot.TeleBot(nikdoge.undump_json('nikdoge_bot_settings.json')['TELEGRAM_TOKEN']) # Creating bot instance
+exch = georgian_exchange.Exchange()
 
 @bot.message_handler(commands=["start","help"])
 def start(message, res=False):
@@ -16,7 +29,6 @@ def start(message, res=False):
 
 @bot.message_handler(commands=["exchange"])
 def exchange(message, res=False):
-    import georgian_exchange
     analyze = message.text.split('/exchange ',1)
     send_help = False
     if len(analyze)<2:
@@ -24,16 +36,15 @@ def exchange(message, res=False):
     elif 'help' in analyze[1]:
         send_help = True
     else:
-        response = georgian_exchange.georgian_exchange(analyze[1])
+        response = exch.georgian_exchange(analyze[1])
         bot.send_message(message.chat.id, response)
     if send_help:
-        response = 'Georgian exchange\nCommand ' + georgian_exchange.help().replace('georgian_exchange','/exchange')
+        response = 'Georgian exchange\nCommand ' + exch.help().replace('georgian_exchange','/exchange')
         bot.send_message(message.chat.id, response)
     return
 
 @bot.message_handler(commands=["обмен"])
 def exchange_ru(message, res=False):
-    import georgian_exchange
     analyze = message.text.split('/обмен ',1)
     send_help = False
     if len(analyze)<2:
@@ -41,10 +52,10 @@ def exchange_ru(message, res=False):
     elif 'помощь' in analyze[1]:
         send_help = True
     else:
-        response = georgian_exchange.georgian_exchange(analyze[1])
+        response = exch.georgian_exchange(analyze[1])
         bot.send_message(message.chat.id, response)
     if send_help:
-        response = 'Грузинский обменник\nКоманда ' + georgian_exchange.help_ru().replace('georgian_exchange','/обмен')
+        response = 'Грузинский обменник\nКоманда ' + exch.help_ru().replace('georgian_exchange','/обмен')
         bot.send_message(message.chat.id, response)
     return
 
@@ -54,12 +65,11 @@ def exchange_ru(message, res=False):
 #    bot.send_message(message.chat.id, f'{message.text}? Что бы это могло значить?')
 
 # Launch the bot
-start_timestamp = dt.utcnow().isoformat()
-print(f'[{start_timestamp}] Starting Nikdoge Telegram bot')
+log.info('Starting Nikdoge Telegram bot')
 while True:
     try:
         bot.polling(none_stop=True, interval=0)
     except requests.exceptions.ReadTimeout:
-        print("requests.exceptions.ReadTimeout exception happened, maybe write something in logs")
+        log.info("requests.exceptions.ReadTimeout exception happened")
         time.sleep(10)
         pass
