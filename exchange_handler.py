@@ -3,6 +3,8 @@
 import exchange_gateway
 from datetime import datetime as dt, timedelta as td
 import logging
+import argparse
+from libs import nikdoge
 
 #From rico.ge "currency buy sell" to georgian lari
 #buy - means exchange buys from me
@@ -29,20 +31,12 @@ class Exchange:
     last_updated = None
 
     def __init__(self):
+        log.info('Initialization of Exchange object')
         self.base_currency = 'GEL'
         self.time_to_cache = 5*60 #in seconds, how long to cache exchange info, received from feed module
         self.route_too_long = 15 #maximum lenght of crossrate route: if 4, then "1000 RUB GEL USD EUR" is maximum
 
         self.exchange_info, self.data_date, self.last_updated = self.get_exchange_data()
-
-    def process_exchange_info(self,exchange_text):
-        exchange_info = dict()
-        for line in exchange_text:
-            line = line.split()
-            exchange_info[line[0]] = {'buy':float(line[1]),'sell':float(line[2])}
-        return exchange_info
-
-    #self.exchange_info = process_exchange_info(self,RICOGE)
 
     def get_exchange_data(self):
         timestamp_now = dt.utcnow()
@@ -50,9 +44,12 @@ class Exchange:
 
         if (exchange_data == None
         or (last_updated != None and timestamp_now > last_updated + td(seconds=self.time_to_cache))):
+            log.info('Getting data from exchange gateway')
             exchange_data,timestamp = exchange_gateway.get_data() #time rules from inside do not work if this file is imported in final script once with this call
             exchange_data[self.base_currency] = {'buy':1,'sell':1} #Adding self.base_currency to table for consistency
             last_updated = dt.utcnow()
+        else:
+            log.info('Getting data not from exchange gateway, but what was cached earlier')
 
         return exchange_data,timestamp,last_updated
 
@@ -79,51 +76,59 @@ class Exchange:
                 if nick not in currencies_nicks:
                     currencies_nicks[nick] = k
 
-        fail = False
-        is_whole = False
-        if len(string) == 0: fail = True
-        elif ' ' not in string: 
-            #maybe it is only number or number is joined by currency
-            is_whole = True
-            #fail = True 
-        if fail: return 100, [DEFAULT_CURRENCY] #КОСТЫЛЬ
-        
-        listing = ['']
-        if not is_whole:
-            listing = string.split()
+        parser = argparse.ArgumentParser()
+        parser.add_argument('elements',help='amount and currencies',nargs='+')
+        parser.add_argument('--mid',help='calculate by middle between bid and ask',action='store_true')
+        args = parser.parse_args(string.split())
+        log.info(args)
+
+        first_amount = None
+        last_amount = None
+        sell = True
+        mid = args.mid
+
+        try:
+            first_amount = float(args.elements[0].replace(',','.',1))
+        except ValueError:
+            pass
+        if len(args.elements) == 1:
+            return first_amount, [DEFAULT_CURRENCY], sell, mid
+
+        try:
+            last_amount = float(args.elements[-1].replace(',','.',1))
+        except ValueError:
+            pass
+
+        if (first_amount == None and last_amount == None):
+            raise ValueError("No amount found on start or end of input")
+            
+        if (first_amount != None and last_amount != None):
+            raise ValueError("Found amount both on start or end of input")
+            
+        if first_amount == None:
+            sell = False
+            amount = last_amount
         else:
-            for letter in string:
-                if letter.isdigit(): #TO DO: . and , should also pass - it can be decimal fraction like 0.10 or 0,25
-                    listing[0] += letter
-                else:
-                    break
-            if len(string)>len(listing[0]):
-                if len(listing) == 1:
-                    listing.append('')
-                for letter in string[len(listing[0]):]:
-                    listing[1] += letter
-        if len(listing[0]) == 0 or not listing[0].isdigit(): fail = True #Found no digits for amount
-        if fail: return 100, [DEFAULT_CURRENCY] #КОСТЫЛЬ
+            amount = first_amount
 
-        #first elem should be hadled as amount, other (if they are in place) - as crossrate route
-        amount = float(listing[0])
+        currencies_pre = [elem for elem in args.elements[1 if first_amount != None else None:-1 if last_amount != None else None]]
         currencies = []
+        for currency in currencies_pre:
+            if currency not in self.exchange_info and currency not in currencies_nicks: 
+                pass
+            elif currency in self.exchange_info: currencies.append(currency)
+            elif currency in currencies_nicks: currencies.append(currencies_nicks[currency])
+            #elif currency in currencies_nicks_non_strict: currencies.append(currencies_nicks_non_strict[currency]) #here .startswith can be used
 
-        if len(listing) > 1:
-            for currency in listing[1:]:
-                if currency not in self.exchange_info and currency not in currencies_nicks: 
-                    pass
-                elif currency in self.exchange_info: currencies.append(currency)
-                elif currency in currencies_nicks: currencies.append(currencies_nicks[currency])
-                #elif currency in currencies_nicks_non_strict: currencies.append(currencies_nicks_non_strict[currency]) #here .startswith can be used
+            if len(currencies) > self.route_too_long: break
+        
+        if len(currencies) == 0: 
+            raise ValueError("Found no known currencies")
 
-                if len(currencies) > self.route_too_long: break
+        return amount, currencies, sell, mid
 
-        if len(currencies) == 0: currencies = [DEFAULT_CURRENCY]
 
-        return amount, currencies
-
-    def calculate_change(self,amount=float(),currency_in=str(),currency_out=str()):
+    def calculate_change(self,amount=float(),currency_in=str(),currency_out=str(), sell=bool(), mid=bool()):
         """
         Takes initial amount of money, initial currency and goal currency
         If there is crossrate through self.base_currency, calculates crossrate silently
@@ -132,33 +137,63 @@ class Exchange:
         If we convert EUR/GEL, RUB/GEL, GEL/USD etc. it convert straight forward
         If we convert EUR/USD, RUB/USD, RUB/EUR then it will convert through GEL as self.base_currency
         """
-        #print(amount,currency_in,currency_out)
-        if currency_out == self.base_currency:
-            amount_out = amount*self.exchange_info[currency_in]['buy']
+        if sell == True:
+            if currency_out == self.base_currency:
+                amount_out = amount*self.exchange_info[currency_in]['buy']
 
-        elif currency_in == self.base_currency:
-            amount_out = amount/self.exchange_info[currency_out]['sell']
+            elif currency_in == self.base_currency:
+                amount_out = amount/self.exchange_info[currency_out]['sell']
+            else:
+                #amount_out = calculate_change(amount,currency_in,self.base_currency)[0]/calculate_change(amount,self.base_currency,currency_out)[0]
+                amount_out = amount*self.exchange_info[currency_in]['buy']/self.exchange_info[currency_out]['sell']
+            #We could make the function, that will find crossrate route, not only in/GEL/out
         else:
-            #amount_out = calculate_change(amount,currency_in,self.base_currency)[0]/calculate_change(amount,self.base_currency,currency_out)[0]
-            amount_out = amount*self.exchange_info[currency_in]['buy']/self.exchange_info[currency_out]['sell']
-        #We could make the function, that will find crossrate route, not only in/GEL/out
-        return round(amount_out,3),currency_out
+            if currency_out == self.base_currency:
+                amount_out = amount*self.exchange_info[currency_in]['sell']
 
-    def process_request(self,amount=float(), currencies=list()):
+            elif currency_in == self.base_currency:
+                amount_out = amount/self.exchange_info[currency_out]['buy']
+            else:
+                #amount_out = calculate_change(amount,currency_in,self.base_currency)[0]/calculate_change(amount,self.base_currency,currency_out)[0]
+                amount_out = amount*self.exchange_info[currency_in]['sell']/self.exchange_info[currency_out]['buy']
+        return round(amount_out,2),currency_out
+
+    def process_request(self,amount=float(), currencies=list(), sell=bool(), mid=bool()):
         """
         Takes initial amount of money and list of currencies to convert through
         List can have 1 element, then the specified currency will be converted to self.base_currency (GEL)
         """
+
+        def add_base_currency(currencies):
+            #adding base currency between all non-base currencies
+            pos_need_base_currency = []
+            for i,currency in enumerate(currencies):
+                if i == 0: 
+                    previous_currency = currency
+                    continue
+                if currency != self.base_currency and previous_currency != self.base_currency:
+                    pos_need_base_currency.append(i)
+                previous_currency = currency
+            if pos_need_base_currency != []:
+                for pos in pos_need_base_currency[::-1]:
+                    currencies.insert(pos,self.base_currency)
+            return currencies
+
         processing_amount = amount
-        processing_currency = currencies[0]
-        result_string = f'{processing_amount} {processing_currency}'
+        processing_currency = currencies[0 if sell else -1]
+        result_list = [f'{processing_amount} {processing_currency}']
+        if sell == False: currencies = currencies[::-1]
 
         if len(currencies) == 1:
-            result_string += " -> {} {}".format(*self.calculate_change(processing_amount,processing_currency,self.base_currency))
+            result_list.append("{} {}".format(*self.calculate_change(processing_amount, processing_currency, self.base_currency, sell, mid)))
         else:
+            currencies = add_base_currency(currencies)
+            #calculating change
             for currency in currencies[1:]:
-                processing_amount, processing_currency = self.calculate_change(processing_amount,processing_currency,currency)
-                result_string += " -> {} {}".format(processing_amount, processing_currency)
+                processing_amount, processing_currency = self.calculate_change(processing_amount, processing_currency, currency, sell, mid)
+                result_list.append("{} {}".format(processing_amount, processing_currency))
+
+        result_string = ' -> '.join(result_list[::None if sell else -1])
 
         return result_string
 
@@ -192,10 +227,20 @@ class Exchange:
         E.g.: "1000 RUB GEL" or "500 GEL RUB" or "1500 EUR GEL"
         """
         self.exchange_info, self.data_date, self.last_updated = self.get_exchange_data()
-        return self.process_request(*self.analyze_input_string(string))
+        try:
+            new_here = self.analyze_input_string(string)
+            return self.process_request(*new_here)
+        except ValueError as e:
+            log.exception(e)
+            return 'Error: '+e.args[0]
 
 if __name__ == '__main__':
     import sys
     string = ' '.join(sys.argv[1:])
     exch = Exchange()
-    log.info(exch.process_request(*exch.analyze_input_string(string)),'based on info from',exch.data_date)
+    exch.exchange_info, exch.data_date, exch.last_updated = exch.get_exchange_data()
+    try:
+        new_here = exch.analyze_input_string(string)
+        log.info(f"{exch.process_request(*new_here)} based on info from {exch.data_date}")
+    except ValueError as e:
+        log.exception(e)
