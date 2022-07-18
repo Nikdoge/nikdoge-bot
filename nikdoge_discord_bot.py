@@ -109,6 +109,9 @@ async def on_message(message):
 
     if message.content.startswith('.zdravstvuite'):
         log.info('zdravstvuite called')
+        response = '''Простите, извините, "здравствуйте" временно не работает; мы обязательно с этим разберёмся!'''
+        await message.channel.send(response)
+        return
         user = message.author
         # only play music if user is in a voice channel
         if user.voice != None:
