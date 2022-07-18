@@ -131,12 +131,21 @@ class Exchange:
     def calculate_change(self,amount=float(),currency_in=str(),currency_out=str(), sell=bool(), mid=bool()):
         """
         Takes initial amount of money, initial currency and goal currency
-        If there is crossrate through self.base_currency, calculates crossrate silently
         Example: 
         self.base_currency is GEL, we know how much GEL is to sell or to buy to do convertation with EUR, RUB and USD
         If we convert EUR/GEL, RUB/GEL, GEL/USD etc. it convert straight forward
         If we convert EUR/USD, RUB/USD, RUB/EUR then it will convert through GEL as self.base_currency
         """
+        if mid == True:
+            if currency_out == self.base_currency:
+                amount_out = amount*(self.exchange_info[currency_in]['buy']+self.exchange_info[currency_in]['sell'])/2
+
+            elif currency_in == self.base_currency:
+                amount_out = amount/((self.exchange_info[currency_out]['buy']+self.exchange_info[currency_out]['sell'])/2)
+            else:
+                amount_out = amount*((self.exchange_info[currency_in]['buy']+self.exchange_info[currency_in]['sell'])/2)/((self.exchange_info[currency_out]['buy']+self.exchange_info[currency_out]['sell'])/2)
+            return round(amount_out,2),currency_out
+
         if sell == True:
             if currency_out == self.base_currency:
                 amount_out = amount*self.exchange_info[currency_in]['buy']
@@ -154,7 +163,6 @@ class Exchange:
             elif currency_in == self.base_currency:
                 amount_out = amount/self.exchange_info[currency_out]['buy']
             else:
-                #amount_out = calculate_change(amount,currency_in,self.base_currency)[0]/calculate_change(amount,self.base_currency,currency_out)[0]
                 amount_out = amount*self.exchange_info[currency_in]['sell']/self.exchange_info[currency_out]['buy']
         return round(amount_out,2),currency_out
 
@@ -198,25 +206,26 @@ class Exchange:
         return result_string
 
     def help(self):
-        return f"""georgian_exchange gets string like "1000 RUB GEL" or "500 GEL RUB" and converts specified amount from one currency (to or through georgian lari - GEL) to another by best exchange rate known from rico.ge at {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}.
+        return f"""georgian_exchange gets string like "1000 RUB GEL" or "500 GEL RUB" and converts specified amount from one currency (to or through georgian lari - GEL) to another by best known exchange rate from rico.ge
+        Last time updated data at {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. Will update data with next usage if hour passed.
 
     Variants of request:
-    "1000" = "1000 RUB GEL" — Default convertation route is RUB -> GEL;
-    "100 EUR" = "100 EUR GEL" — Default goal currency is GEL;
     "10000 RUB GEL EUR" — Crosschange calculation is available;
-    "10000 RUB EUR" — Exchange is based on georgian lari anyway so as previous this will also be processed through GEL, but not showing it.
+    "RUB GEL EUR 10000" — Backwards exchange to get 10000 EUR in the end;
+    "10000 RUB GEL --mid" — Will calculate by middle between sell and buy price (Handy for fair exchange between friends).
+
 
     Known currencies: GEL (₾,lari), USD ($,dollar), EUR (€,euro), RUB (₽,ruble), ILS, GBP, TRY, CHF, CAD, AED, AMD, AZN.
     """
 
     def help_ru(self):
-        return f"""georgian_exchange получает строку типа "1000 RUB GEL" или "500 GEL RUB" и конвертирует указанное количество из одной валюты (к или через грузинский лари - GEL) в другую по наилучшему известному курсу с rico.ge на {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}.
+        return f"""georgian_exchange получает строку типа "1000 RUB GEL" или "500 GEL RUB" и конвертирует указанное количество из одной валюты (к или через грузинский лари - GEL) в другую по наилучшему известному курсу с rico.ge
+        Последний раз данные обновлялись {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. При следующем использовании данные будут обновлены, если они просрочены на час.
 
     Варианты запроса:
-    "1000" = "1000 RUB GEL" — Маршрут конвертации по умолчанию RUB -> GEL;
-    "100 EUR" = "100 EUR GEL" — Целевая валюта по умолчанию GEL;
     "10000 RUB GEL EUR" — Работает конвертация по цепочке;
-    "10000 RUB EUR" — Обмен в любом случае базирован на грузинском лари, так что как и в предыдущем примере эта конвертация пройдёт через GEL, только втихую.
+    "RUB GEL EUR 10000" — Конвертация в обрптную сторону, чтобы в конце получилось 10000 евро;
+    "10000 RUB GEL --mid" — Расчёт по среднему значению между ценой продажи и ценой покупки (Полезно для честного обмена с друзьями).
 
     Известные валюты: GEL (₾,лари), USD ($,доллар), EUR (€,евро), RUB (₽,рубль), ILS, GBP, TRY, CHF, CAD, AED, AMD, AZN.
     По падежам валюты пока не склоняются :)
