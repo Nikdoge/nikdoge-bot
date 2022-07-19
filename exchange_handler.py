@@ -91,8 +91,9 @@ class Exchange:
             first_amount = float(args.elements[0].replace(',','.',1))
         except ValueError:
             pass
-        if len(args.elements) == 1:
-            return first_amount, [DEFAULT_CURRENCY], sell, mid
+        
+        if len(args.elements) == 1 and first_amount != None:
+            raise ValueError("No currencies specified")
 
         try:
             last_amount = float(args.elements[-1].replace(',','.',1))
