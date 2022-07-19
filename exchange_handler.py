@@ -20,7 +20,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-log = logging.getLogger('Dogger')
+log = logging.getLogger('Exchange handler')
 
 class Exchange:
     base_currency = None
@@ -91,7 +91,7 @@ class Exchange:
             first_amount = float(args.elements[0].replace(',','.',1))
         except ValueError:
             pass
-        
+
         if len(args.elements) == 1 and first_amount != None:
             raise ValueError("No currencies specified")
 

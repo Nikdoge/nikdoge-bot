@@ -19,7 +19,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-log = logging.getLogger('Dogger')
+log = logging.getLogger('Exchange gateway')
 
 def get_data_online():
     exchange_data = None

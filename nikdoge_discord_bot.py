@@ -20,7 +20,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-log = logging.getLogger('Dogger')
+log = logging.getLogger('Discord bot')
 client = commands.Bot(command_prefix='.')
 exch = exchange_handler.Exchange()
 
