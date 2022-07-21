@@ -10,28 +10,35 @@ from libs import nikdoge
 #buy - means exchange buys from me
 #sell - means exchange sell to me
 
-FILENAME_LOG = 'nikdoge_bot.log'
-
-logging.basicConfig(
-    level = logging.INFO,
-    format = '%(asctime)s %(name)s[%(levelname)s]: %(message)s',
-    handlers = [
-        logging.FileHandler(FILENAME_LOG),
-        logging.StreamHandler()
-    ]
-)
-log = logging.getLogger('Exchange handler')
-
 class Exchange:
     base_currency = None
     time_to_cache = None
     route_too_long = None
+
     exchange_info = None
     data_date = None
     last_updated = None
+    
+    parser = None
+    log = None
 
     def __init__(self):
-        log.info('Initialization of Exchange object')
+        filename_log = 'nikdoge_bot.log'
+        filename_settings = 'nikdoge_bot_settings.json'
+        settings = nikdoge.undump_json(filename_settings)
+
+        logging.basicConfig(
+            level = logging.INFO,
+            format = '%(asctime)s %(name)s[%(levelname)s]: %(message)s',
+            handlers = [logging.FileHandler(filename_log), logging.StreamHandler()]
+        )
+        self.log = logging.getLogger('Exchange handler')
+        self.log.debug('Initialization of Exchange object')
+
+        self.parser = argparse.ArgumentParser()
+        self.parser.add_argument('elements', help='amount and currencies', nargs='+')
+        self.parser.add_argument('--mid', help='calculate by middle between bid and ask', action='store_true')
+
         self.base_currency = 'GEL'
         self.time_to_cache = 5*60 #in seconds, how long to cache exchange info, received from feed module
         self.route_too_long = 15 #maximum lenght of crossrate route: if 4, then "1000 RUB GEL USD EUR" is maximum
@@ -44,27 +51,28 @@ class Exchange:
 
         if (exchange_data == None
         or (last_updated != None and timestamp_now > last_updated + td(seconds=self.time_to_cache))):
-            log.info('Getting data from exchange gateway')
+            self.log.info('Getting data from exchange gateway')
             exchange_data,timestamp = exchange_gateway.get_data() #time rules from inside do not work if this file is imported in final script once with this call
             exchange_data[self.base_currency] = {'buy':1,'sell':1} #Adding self.base_currency to table for consistency
             last_updated = dt.utcnow()
         else:
-            log.info('Getting data not from exchange gateway, but what was cached earlier')
+            self.log.info('Getting data not from exchange gateway, but what was cached earlier')
 
         return exchange_data,timestamp,last_updated
 
-    def get_table(self):
+    def make_table(self):
         answer = f"rico.ge {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}"+'\n'
         answer += f'CURRENCY:  buy({self.base_currency})  sell({self.base_currency})\n'
-        for k,v in self.exchange_info.items() :
-            if k == self.base_currency: break
-            string = f"{k}:  {str(v['buy'])}  {str(v['sell'])}\n"
+        for curr, price in self.exchange_info.items() :
+            if curr == self.base_currency: break
+            string = f"{curr}:  {str(price['buy'])}  {str(price['sell'])}\n"
             answer += string
 
         return answer
 
-    def analyze_input_string(self, string):
-        #maybe this function should receive only list of amount and currencies and mid flag value, and flags should be processed higher
+    def analyze_input_string(self, to_analyze=list()):
+        """Receives list of amount and currencies from input
+        Returns amount=float(), currencies=list(), sell=bool()"""
 
         #converting human-readable nicknames for currencies into algorhytm-readable
         currencies_nicks_pre = {
@@ -78,27 +86,20 @@ class Exchange:
                 if nick not in currencies_nicks:
                     currencies_nicks[nick] = k
 
-        parser = argparse.ArgumentParser()
-        parser.add_argument('elements',help='amount and currencies',nargs='+')
-        parser.add_argument('--mid',help='calculate by middle between bid and ask',action='store_true')
-        args = parser.parse_args(string.split())
-        log.info(args)
-
         first_amount = None
         last_amount = None
         sell = True
-        mid = args.mid
 
         try:
-            first_amount = float(args.elements[0].replace(',','.',1))
+            first_amount = float(to_analyze[0].replace(',','.',1))
         except ValueError:
             pass
 
-        if len(args.elements) == 1 and first_amount != None:
+        if len(to_analyze) == 1 and first_amount != None:
             raise ValueError("No currencies specified")
 
         try:
-            last_amount = float(args.elements[-1].replace(',','.',1))
+            last_amount = float(to_analyze[-1].replace(',','.',1))
         except ValueError:
             pass
 
@@ -114,7 +115,7 @@ class Exchange:
         else:
             amount = first_amount
 
-        currencies_pre = [elem for elem in args.elements[1 if first_amount != None else None:-1 if last_amount != None else None]]
+        currencies_pre = [elem for elem in to_analyze[1 if first_amount != None else None:-1 if last_amount != None else None]]
         currencies = []
         for currency in currencies_pre:
             if currency not in self.exchange_info and currency not in currencies_nicks: 
@@ -128,7 +129,7 @@ class Exchange:
         if len(currencies) == 0: 
             raise ValueError("Found no known currencies")
 
-        return amount, currencies, sell, mid
+        return amount, currencies, sell
 
 
     def calculate_change(self, amount=float(), currency_in=str(), currency_out=str(), sell=bool(), mid=bool()):
@@ -187,7 +188,7 @@ class Exchange:
                 previous_currency = currency
             if pos_need_base_currency != []:
                 for pos in pos_need_base_currency[::-1]:
-                    currencies.insert(pos,self.base_currency)
+                    currencies.insert(pos, self.base_currency)
             return currencies
 
         processing_amount = amount
@@ -237,21 +238,19 @@ class Exchange:
         """
         E.g.: "1000 RUB GEL" or "500 GEL RUB" or "1500 EUR GEL"
         """
+        args = self.parser.parse_args(string.split())
+        self.log.info(args)
+
         self.exchange_info, self.data_date, self.last_updated = self.get_exchange_data()
         try:
-            new_here = self.analyze_input_string(string)
-            return self.process_request(*new_here)
+            analyzed_sequence = self.analyze_input_string(args.elements)
+            return self.process_request(*analyzed_sequence, args.mid)
         except ValueError as e:
-            log.exception(e)
+            self.log.exception(e)
             return 'Error: '+e.args[0]
 
 if __name__ == '__main__':
     import sys
-    string = ' '.join(sys.argv[1:])
     exch = Exchange()
-    exch.exchange_info, exch.data_date, exch.last_updated = exch.get_exchange_data()
-    try:
-        new_here = exch.analyze_input_string(string)
-        log.info(f"{exch.process_request(*new_here)} based on info from {exch.data_date}")
-    except ValueError as e:
-        log.exception(e)
+    result = exch.georgian_exchange(' '.join(sys.argv[1:]))
+    exch.log.info(f"{result} based on info from {exch.data_date}")
