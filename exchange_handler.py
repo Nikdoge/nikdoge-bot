@@ -63,8 +63,10 @@ class Exchange:
 
         return answer
 
-    def analyze_input_string(self,string):
-        DEFAULT_CURRENCY = 'RUB'
+    def analyze_input_string(self, string):
+        #maybe this function should receive only list of amount and currencies and mid flag value, and flags should be processed higher
+
+        #converting human-readable nicknames for currencies into algorhytm-readable
         currencies_nicks_pre = {
             'RUB':['₽','rub','ruble','руб','рубль','RUR'],
             'USD':['$','usd','dollar','доллар'],
@@ -129,7 +131,7 @@ class Exchange:
         return amount, currencies, sell, mid
 
 
-    def calculate_change(self,amount=float(),currency_in=str(),currency_out=str(), sell=bool(), mid=bool()):
+    def calculate_change(self, amount=float(), currency_in=str(), currency_out=str(), sell=bool(), mid=bool()):
         """
         Takes initial amount of money, initial currency and goal currency
         Example: 
@@ -167,7 +169,7 @@ class Exchange:
                 amount_out = amount*self.exchange_info[currency_in]['sell']/self.exchange_info[currency_out]['buy']
         return round(amount_out,2),currency_out
 
-    def process_request(self,amount=float(), currencies=list(), sell=bool(), mid=bool()):
+    def process_request(self, amount=float(), currencies=list(), sell=bool(), mid=bool()):
         """
         Takes initial amount of money and list of currencies to convert through
         List can have 1 element, then the specified currency will be converted to self.base_currency (GEL)
@@ -208,20 +210,19 @@ class Exchange:
 
     def help(self):
         return f"""georgian_exchange gets string like "1000 RUB GEL" or "500 GEL RUB" and converts specified amount from one currency (to or through georgian lari - GEL) to another by best known exchange rate from rico.ge
-        Last time updated data at {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. Will update data with next usage if hour passed.
+    Last time updated data at {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. Will update data with next usage if hour passed.
 
     Variants of request:
     "10000 RUB GEL EUR" — Crosschange calculation is available;
     "RUB GEL EUR 10000" — Backwards exchange to get 10000 EUR in the end;
     "10000 RUB GEL --mid" — Will calculate by middle between sell and buy price (Handy for fair exchange between friends).
 
-
     Known currencies: GEL (₾,lari), USD ($,dollar), EUR (€,euro), RUB (₽,ruble), ILS, GBP, TRY, CHF, CAD, AED, AMD, AZN.
     """
 
     def help_ru(self):
         return f"""georgian_exchange получает строку типа "1000 RUB GEL" или "500 GEL RUB" и конвертирует указанное количество из одной валюты (к или через грузинский лари - GEL) в другую по наилучшему известному курсу с rico.ge
-        Последний раз данные обновлялись {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. При следующем использовании данные будут обновлены, если они просрочены на час.
+    Последний раз данные обновлялись {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. При следующем использовании данные будут обновлены, если они просрочены на час.
 
     Варианты запроса:
     "10000 RUB GEL EUR" — Работает конвертация по цепочке;
