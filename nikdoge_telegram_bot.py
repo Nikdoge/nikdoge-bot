@@ -16,7 +16,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-log = logging.getLogger('Dogger')
+log = logging.getLogger('Telegram bot')
 bot = telebot.TeleBot(nikdoge.undump_json('nikdoge_bot_settings.json')['TELEGRAM_TOKEN']) # Creating bot instance
 exch = exchange_handler.Exchange()
 
