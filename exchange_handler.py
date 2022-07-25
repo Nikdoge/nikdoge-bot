@@ -18,7 +18,7 @@ class Exchange:
     exchange_info = None
     data_date = None
     last_updated = None
-    
+
     parser = None
     log = None
 
@@ -36,8 +36,10 @@ class Exchange:
         self.log.debug('Initialization of Exchange object')
 
         self.parser = argparse.ArgumentParser()
-        self.parser.add_argument('elements', help='amount and currencies', nargs='+')
+        self.parser.add_argument('sequence', help='amount and currencies', nargs='*', default=None)
         self.parser.add_argument('--mid', help='calculate by middle between bid and ask', action='store_true')
+        self.parser.add_argument('--table', help='calculate by middle between bid and ask', action='store_true')
+        #self.parser.add_argument('--source', help='set source of data', nargs='+', default=None)
 
         self.base_currency = 'GEL'
         self.time_to_cache = 5*60 #in seconds, how long to cache exchange info, received from feed module
@@ -76,10 +78,10 @@ class Exchange:
 
         #converting human-readable nicknames for currencies into algorhytm-readable
         currencies_nicks_pre = {
-            'RUB':['₽','rub','ruble','руб','рубль','RUR'],
-            'USD':['$','usd','dollar','доллар'],
-            'EUR':['€','eur','euro','евро'],
-            'GEL':['₾','gel','lari','лари']}
+            'RUB':['₽','rub','ruble','руб','рубль','RUR','рубас'],
+            'USD':['$','usd','dollar','доллар','далар'],
+            'EUR':['€','eur','euro','евро','еврик'],
+            'GEL':['₾','gel','lari','лари','лар']}
         currencies_nicks = dict()
         for k,v in currencies_nicks_pre.items():
             for nick in v:
@@ -205,46 +207,52 @@ class Exchange:
                 processing_amount, processing_currency = self.calculate_change(processing_amount, processing_currency, currency, sell, mid)
                 result_list.append("{} {}".format(processing_amount, processing_currency))
 
-        result_string = ' -> '.join(result_list[::None if sell else -1])
+        connection_string = ' -> ' if mid == False else ' <-> '
+        result_string = connection_string.join(result_list[::None if sell else -1])
 
         return result_string
 
     def help(self):
-        return f"""georgian_exchange gets string like "1000 RUB GEL" or "500 GEL RUB" and converts specified amount from one currency (to or through georgian lari - GEL) to another by best known exchange rate from rico.ge
+        return f"""exchange_handler gets string like "1000 RUB GEL" or "GEL RUB 500" and converts specified amount from one currency (to or through georgian lari - GEL) to another by best known exchange rate from rico.ge
     Last time updated data at {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. Will update data with next usage if hour passed.
 
     Variants of request:
     "10000 RUB GEL EUR" — Crosschange calculation is available;
-    "RUB GEL EUR 10000" — Backwards exchange to get 10000 EUR in the end;
+    "RUB GEL EUR 10000" — Exchange to get 10000 EUR in the end;
     "10000 RUB GEL --mid" — Will calculate by middle between sell and buy price (Handy for fair exchange between friends).
 
     Known currencies: GEL (₾,lari), USD ($,dollar), EUR (€,euro), RUB (₽,ruble), ILS, GBP, TRY, CHF, CAD, AED, AMD, AZN.
     """
 
     def help_ru(self):
-        return f"""georgian_exchange получает строку типа "1000 RUB GEL" или "500 GEL RUB" и конвертирует указанное количество из одной валюты (к или через грузинский лари - GEL) в другую по наилучшему известному курсу с rico.ge
+        return f"""exchange_handler получает строку типа "1000 RUB GEL" или "GEL RUB 500" и конвертирует указанное количество из одной валюты (к или через грузинский лари - GEL) в другую по наилучшему известному курсу с rico.ge
     Последний раз данные обновлялись {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}. При следующем использовании данные будут обновлены, если они просрочены на час.
 
     Варианты запроса:
     "10000 RUB GEL EUR" — Работает конвертация по цепочке;
-    "RUB GEL EUR 10000" — Конвертация в обрптную сторону, чтобы в конце получилось 10000 евро;
+    "RUB GEL EUR 10000" — Конвертация, чтобы в конце получилось 10000 евро;
     "10000 RUB GEL --mid" — Расчёт по среднему значению между ценой продажи и ценой покупки (Полезно для честного обмена с друзьями).
 
     Известные валюты: GEL (₾,лари), USD ($,доллар), EUR (€,евро), RUB (₽,рубль), ILS, GBP, TRY, CHF, CAD, AED, AMD, AZN.
     По падежам валюты пока не склоняются :)
     """
 
-    def georgian_exchange(self,string=str()):
+    def exchange_handler(self,string=str()):
         """
-        E.g.: "1000 RUB GEL" or "500 GEL RUB" or "1500 EUR GEL"
+        E.g.: "1000 RUB GEL" or "GEL RUB 500" or "1500 EUR GEL --mid"
         """
         args = self.parser.parse_args(string.split())
         self.log.info(args)
 
         self.exchange_info, self.data_date, self.last_updated = self.get_exchange_data()
+        if args.sequence == []:
+            if args.table == True:
+                return self.make_table()
+            else:
+                return 'Error: Empty sequence'
         try:
-            analyzed_sequence = self.analyze_input_string(args.elements)
-            return self.process_request(*analyzed_sequence, args.mid)
+            amount, currencies, sell = self.analyze_input_string(args.sequence)
+            return self.process_request(amount, currencies, sell, args.mid)
         except ValueError as e:
             self.log.exception(e)
             return 'Error: '+e.args[0]
@@ -252,5 +260,5 @@ class Exchange:
 if __name__ == '__main__':
     import sys
     exch = Exchange()
-    result = exch.georgian_exchange(' '.join(sys.argv[1:]))
+    result = exch.exchange_handler(' '.join(sys.argv[1:]))
     exch.log.info(f"{result} based on info from {exch.data_date}")

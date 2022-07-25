@@ -5,6 +5,7 @@ from libs import nikdoge
 from datetime import datetime as dt
 import logging
 import exchange_handler
+import argparse
 
 FILENAME_LOG = 'nikdoge_bot.log'
 
@@ -27,42 +28,29 @@ def start(message, res=False):
 Ввод команды без аргументов вызовет справку по ней"""
     )
 
-@bot.message_handler(commands=["exchange"])
+@bot.message_handler(commands=["exchange","обмен"])
 def exchange(message, res=False):
-    analyze = message.text.split('/exchange ',1)
+    analyze_list = message.text.split(' ')
+    response = None
     send_help = False
-    if len(analyze)<2:
+    lang = 'ru' if analyze_list[0] == '/обмен' else 'en'
+    analyze = ' '.join(analyze_list[1:])
+
+    if len(analyze_list) < 2:
         send_help = True
-    elif 'help' in analyze[1]:
+    elif 'help' in analyze_list or 'помощь' in analyze_list:
         send_help = True
     else:
-        response = exch.georgian_exchange(analyze[1])
-        bot.send_message(message.chat.id, response)
-    if send_help:
-        response = 'Georgian exchange\nCommand ' + exch.help().replace('georgian_exchange','/exchange')
-        bot.send_message(message.chat.id, response)
-    return
+        response = exch.exchange_handler(analyze)
 
-@bot.message_handler(commands=["обмен"])
-def exchange_ru(message, res=False):
-    analyze = message.text.split('/обмен ',1)
-    send_help = False
-    if len(analyze)<2:
-        send_help = True
-    elif 'помощь' in analyze[1]:
-        send_help = True
-    else:
-        response = exch.georgian_exchange(analyze[1])
-        bot.send_message(message.chat.id, response)
     if send_help:
-        response = 'Грузинский обменник\nКоманда ' + exch.help_ru().replace('georgian_exchange','/обмен')
-        bot.send_message(message.chat.id, response)
-    return
+        if lang == 'ru':
+            response = 'Грузинский обменник\nКоманда ' + exch.help_ru().replace('exchange_handler','/обмен')
+        else:
+            response = 'Georgian exchange\nCommand ' + exch.help().replace('exchange_handler','/exchange')
 
-## Handling text
-#@bot.message_handler(content_types=["text"])
-#def handle_text(message):
-#    bot.send_message(message.chat.id, f'{message.text}? Что бы это могло значить?')
+    bot.send_message(message.chat.id, response)
+    return
 
 # Launch the bot
 log.info('Starting Nikdoge Telegram bot')
@@ -73,3 +61,6 @@ while True:
         log.info("requests.exceptions.ReadTimeout exception happened")
         time.sleep(10)
         pass
+    else:
+        log.info('Breaking from loop')
+        break

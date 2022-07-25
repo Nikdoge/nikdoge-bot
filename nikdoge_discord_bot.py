@@ -58,36 +58,29 @@ async def on_message(message):
         await message.channel.send(embed=embed)
         return
 
-    if message.content.startswith('.exchange'):
-        analyze = message.content.split('.exchange ',1)
+    if message.content.startswith('.exchange') or message.content.startswith('.обмен'):
+        analyze_list = message.content.split(' ')
+        embed = None
+        response = None
         send_help = False
-        if len(analyze)<2:
-            send_help = True
-        elif 'help' in analyze[1]:
-            send_help = True
-        else:
-            response = exch.georgian_exchange(analyze[1])
-            await message.channel.send(response)
-        if send_help:
-            response = 'Georgian exchange\nCommand ' + exch.help().replace('georgian_exchange','.exchange')
-            embed=discord.Embed(description=response, color=0xFF5733)
-            await message.channel.send(embed=embed)
-        return
+        lang = 'ru' if analyze_list[0] == '.обмен' else 'en'
+        analyze = ' '.join(analyze_list[1:])
 
-    if message.content.startswith('.обмен'):
-        analyze = message.content.split('.обмен ',1)
-        send_help = False
-        if len(analyze)<2:
+        if len(analyze_list) < 2:
             send_help = True
-        elif 'help' in analyze[1]:
+        elif 'help' in analyze_list or 'помощь' in analyze_list:
             send_help = True
         else:
-            response = exch.georgian_exchange(analyze[1])
-            await message.channel.send(response)
+            response = exch.exchange_handler(analyze)
+
         if send_help:
-            response = 'Грузинский обменник\nКоманда ' + exch.help_ru().replace('georgian_exchange','.обмен')
-            embed=discord.Embed(description=response, color=0xFF5733)
-            await message.channel.send(embed=embed)
+            if lang == 'ru':
+                description = 'Грузинский обменник\nКоманда ' + exch.help_ru().replace('exchange_handler','.обмен')
+            else:
+                description = 'Georgian exchange\nCommand ' + exch.help().replace('exchange_handler','.exchange')
+            embed=discord.Embed(description=description, color=0xFF5733)
+        
+        await message.channel.send(response,embed=embed)
         return
 
     if message.content.startswith('.woofe'):
