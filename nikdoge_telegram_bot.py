@@ -57,6 +57,10 @@ log.info('Starting Nikdoge Telegram bot')
 while True:
     try:
         bot.polling(none_stop=True, interval=0)
+    except requests.exceptions.ConnectionError:
+        log.info("requests.exceptions.ConnectionError exception happened")
+        time.sleep(10)
+        pass
     except requests.exceptions.ReadTimeout:
         log.info("requests.exceptions.ReadTimeout exception happened")
         time.sleep(10)
