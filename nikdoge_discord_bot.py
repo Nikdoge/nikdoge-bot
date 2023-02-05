@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-# bot.py
 import discord
 import asyncio
 from libs import nikdoge
-from discord.ext import commands
-from datetime import datetime as dt
+from discord.ext import commands, tasks
 import logging
 import exchange_handler
+import check_minecraft_server
 
 FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
 FILENAME_LOG = 'nikdoge_bot.log'
@@ -21,19 +20,45 @@ logging.basicConfig(
     ]
 )
 log = logging.getLogger('Discord bot')
-client = commands.Bot(command_prefix='.')
+
+description = '''Nikdoge's personal bot.'''
+
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix='.', description=description, intents=intents)
+
 exch = exchange_handler.Exchange()
+nms_checker = check_minecraft_server.Checker("server.nikdoge.ru:25565")
 
-@client.event
+
+#https://stackoverflow.com/questions/62069138/how-to-let-a-bot-post-send-a-message-every-5-minutes-or-because-of-another-event
+@tasks.loop(minutes=1.0, count=None)
+async def my_background_task():
+
+    #await bot.wait_until_ready() # ensures cache is loaded
+    channel = bot.get_channel(763862682054557756) # NMS:status # replace with target channel id
+    answer_string = nms_checker.get_fresh_players_info()
+    if answer_string:
+        log.info(answer_string)
+        await channel.send(answer_string)
+    else:
+        log.info("NMS players amount unchanged")
+
+
+@bot.event
 async def on_ready():
-    log.info(f'{client.user} is connected to the following guilds:')
-    for guild in client.guilds:
+    log.info(f'{bot.user} (ID: {bot.user.id}) is connected to the following guilds:')
+    for guild in bot.guilds:
         log.info(f'{guild.id}: {guild.name}')
+        
+    bot.loop.create_task(my_background_task())
 
 
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == bot.user:
         return
 
     if message.content.startswith('.help3') or message.content.startswith('.nikdogebot') or message.content.startswith('.nikdoge bot'):
@@ -88,15 +113,16 @@ async def on_message(message):
         await message.channel.send(response)
         return
 
+    
+
     if message.content.startswith('.rokk'):
         response = '''
-        Р О К К
-        Е Б О Л
-        М У П Ю
-        О В И Ч
-        Н И R Е
-        Т👠🔑Й
-        '''
+    Р О К К
+    Е Б О Л
+    М У П Ю
+    О В И Ч
+    Н И R Е
+    Т👠🔑Й'''
         await message.channel.send(response)
         return
 
@@ -128,6 +154,9 @@ async def on_message(message):
         await message.channel.send(response)
         return
 
+    #https://discordpy.readthedocs.io/en/latest/faq.html#why-does-on-message-make-my-commands-stop-working
+    await bot.process_commands(message)
+
 
 log.info('Starting Nikdoge Discord bot')
-client.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'])
+bot.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'])
