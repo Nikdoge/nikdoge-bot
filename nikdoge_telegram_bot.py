@@ -5,7 +5,6 @@ from libs import nikdoge
 from datetime import datetime as dt
 import logging
 import exchange_handler
-import argparse
 
 FILENAME_LOG = 'nikdoge_bot.log'
 
@@ -37,7 +36,11 @@ def exchange(message, res=False):
     analyze = ' '.join(analyze_list[1:])
 
     if len(analyze_list) < 2:
-        send_help = True
+        if message.chat.type == "private":
+            # should handle input string separately
+            send_help = True #temp
+        else:
+            send_help = True
     elif 'help' in analyze_list or 'помощь' in analyze_list:
         send_help = True
     else:
