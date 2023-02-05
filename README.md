@@ -10,8 +10,7 @@ TO DO LIST
 6. Move exchange settings into exchange settings file
 7. <s>Add possibility of backwards convertation (RUB GEL 100 - calculates how many RUB are needed to buy 100 GEL)</s>
 8. <s>Add possibility to calculate by mid for fair exchange</s>
-9. Add minecraft server status check
-10. Rewrite for new discord API
+9. <s>Add minecraft server status check</s>
 
 Ideas
 1. Everyday post quotes at 18:00 and compare them to previous day, draw arrows of prices movement
