@@ -10,7 +10,7 @@ import check_minecraft_server
 
 FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
 FILENAME_LOG = 'nikdoge_bot.log'
-COMMAND_PREFIX = '.'
+COMMAND_PREFIX = '/'
 
 logging.basicConfig(
     level = logging.INFO,
@@ -40,19 +40,19 @@ async def nikdogebot(ctx):
 @bot.command()
 async def help3(ctx):
     help_text_en = f"""Nikdoge Bot is only on the start of its way to the bright future, and atm it's pretty dumb
-    {COMMAND_PREFIX}help3 {COMMAND_PREFIX}nikdogebot - help on Nikdoge Bot
+    {COMMAND_PREFIX}nikdogebot - help on Nikdoge Bot
     {COMMAND_PREFIX}woofe - answers "woofe indeed"
     {COMMAND_PREFIX}rokk - prints rokk ebol
     {COMMAND_PREFIX}zdravstvuite - says Hello in RYTP style in your voice channel
     {COMMAND_PREFIX}georgian - prints georgian letters
-    {COMMAND_PREFIX}exchange - georgian exchange"""
+    {COMMAND_PREFIX}exchange {COMMAND_PREFIX}ex {COMMAND_PREFIX} - georgian exchange"""
     help_text_ru = f"""Nikdoge Bot только в начале своего пути к светлому будущему, и пока что весьма мало полезен
-    {COMMAND_PREFIX}help3 {COMMAND_PREFIX}nikdogebot - помощь по Nikdoge Bot
+    {COMMAND_PREFIX}nikdogebot - помощь по Nikdoge Bot
     {COMMAND_PREFIX}woofe - отвечает "woofe indeed"
     {COMMAND_PREFIX}rokk - печатает весь рокк ебол
     {COMMAND_PREFIX}zdravstvuite - говорит Здравствуйте в RYTP-манере в твой голосовой канал
     {COMMAND_PREFIX}georgian - печатает грузинский алфавит
-    {COMMAND_PREFIX}exchange - грузинский обменник (без аргументов печатает помощь по команде)"""
+    {COMMAND_PREFIX}exchange {COMMAND_PREFIX}ex {COMMAND_PREFIX} - грузинский обменник (без аргументов печатает помощь по команде)"""
     embed=discord.Embed(
         title="Nikdoge Bot help",
         description=help_text_ru,
@@ -68,7 +68,7 @@ async def обмен(ctx):
     await exchange.invoke(ctx)
 
 @bot.command()
-async def exchange(ctx, *, arg):
+async def exchange(ctx, *, arg: str = []):
     embed = None
     response = None
     send_help = False
@@ -134,7 +134,7 @@ async def georgian(ctx):
 
 
 #https://stackoverflow.com/questions/62069138/how-to-let-a-bot-post-send-a-message-every-5-minutes-or-because-of-another-event
-@tasks.loop(seconds=30)
+@tasks.loop(seconds=20)
 async def my_background_task():
 
     #await bot.wait_until_ready() # ensures cache is loaded
@@ -143,8 +143,8 @@ async def my_background_task():
     if answer_string:
         log.info(answer_string)
         await channel.send(answer_string)
-    else:
-        log.info("NMS players amount unchanged")
+    #else:
+    #    log.info("NMS players amount unchanged")
 
 
 @bot.event
@@ -152,8 +152,14 @@ async def on_ready():
     log.info(f'{bot.user} (ID: {bot.user.id}) is connected to the following guilds:')
     for guild in bot.guilds:
         log.info(f'{guild.id}: {guild.name}')
+    my_background_task.start()
         
-    bot.loop.create_task(my_background_task())
+
+@bot.listen('on_message')
+async def whatever_you_want_to_call_it(message):
+    if message.content.startswith('.help3'):
+        response = 'Maybe try /nikdogebot instead'
+        await message.channel.send(response)
 
 
 log.info('Starting Nikdoge Discord bot')

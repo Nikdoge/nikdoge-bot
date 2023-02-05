@@ -6,12 +6,14 @@ class Checker:
     server_address = None
     server = None
     timestamp = None
+    players = None
     players_amount = None
     players_amount_grew = None
 
     def __init__(self, server_address_port):
         self.server_address = server_address_port
         self.players_amount = 0
+        self.players = set()
         self.players_amount_grew = False
         # You can pass the same address you'd enter into the address field in minecraft into the 'lookup' function
         # If you know the host and port, you may skip this and use JavaServer("example.org", 1234)
@@ -36,14 +38,15 @@ class Checker:
 
     def refresh_data(self):
         self.server = JavaServer.lookup(self.server_address)
-        players_amount_new, latency_new = self.get_status()
+        players_new = set(self.get_players())
 
-        if players_amount_new > self.players_amount:
+        if players_new != self.players and len(players_new) >= len(self.players):
             self.players_amount_grew = True
         else:
             self.players_amount_grew = False
 
-        self.players_amount = players_amount_new
+        self.players = players_new
+
 
     def get_fresh_players_info(self):
         self.refresh_data()
