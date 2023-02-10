@@ -28,7 +28,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=COMMAND_PREFIX, description=description, intents=intents)
+bot = commands.Bot(command_prefix=COMMAND_PREFIX, description=description, intents=intents, help_command = "nikdogebothelp2")
 
 exch = exchange_handler.Exchange()
 nms_checker = check_minecraft_server.Checker("server.nikdoge.ru:25565")
@@ -163,4 +163,4 @@ async def whatever_you_want_to_call_it(message):
 
 
 log.info('Starting Nikdoge Discord bot')
-bot.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'], help_command = None)
+bot.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'])
