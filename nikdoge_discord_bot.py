@@ -163,4 +163,4 @@ async def whatever_you_want_to_call_it(message):
 
 
 log.info('Starting Nikdoge Discord bot')
-bot.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'])
+bot.run(nikdoge.undump_json('nikdoge_bot_settings.json')['DISCORD_TOKEN'], help_command = None)

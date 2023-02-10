@@ -52,7 +52,7 @@ class Checker:
         self.refresh_data()
         if self.players_amount_grew:
             players = self.get_players()
-            return f"Currently playing on minecraft server: {', '.join(players)}"
+            return f"Currently playing on minecraft server: {', '.join(sorted(players))}"
         else:
             return None
 

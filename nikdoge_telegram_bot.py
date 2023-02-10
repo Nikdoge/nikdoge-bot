@@ -23,13 +23,13 @@ exch = exchange_handler.Exchange()
 @bot.message_handler(commands=["start","help"])
 def start(message, res=False):
     bot.send_message(message.chat.id, 
-    """На данный момент этот бот поддерживает только команду /exchange или /обмен
+    """На данный момент этот бот поддерживает только команду /exchange (или /ex, /обмен)
 Ввод команды без аргументов вызовет справку по ней"""
     )
 
-@bot.message_handler(commands=["exchange","обмен"])
+@bot.message_handler(commands=["exchange","обмен","ex"])
 def exchange(message, res=False):
-    analyze_list = message.text.split(' ')
+    analyze_list = message.text.replace('—','--').split(' ') #Telegram replaces -- with — which breaks command interpretation
     response = None
     send_help = False
     lang = 'ru' if analyze_list[0] == '/обмен' else 'en'
