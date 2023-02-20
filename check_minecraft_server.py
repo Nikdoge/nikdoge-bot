@@ -50,7 +50,6 @@ class Checker:
         # Try to use query protocol if enabled
         if use_query_protocol == True:
             try:
-                print('quering')
                 self.query_success = True
                 players_new = set(self._get_players())
                 players_amount_new = len(players_new)
@@ -59,7 +58,6 @@ class Checker:
                 use_query_protocol = False
         # Use status protocol if query disabled or failed
         if use_query_protocol == False:
-            print('statusing')
             status = self._get_status()
             players_new = set([elem.name for elem in status.players.sample])
             players_amount_new = status.players.online
