@@ -134,7 +134,7 @@ async def georgian(ctx):
 
 
 #https://stackoverflow.com/questions/62069138/how-to-let-a-bot-post-send-a-message-every-5-minutes-or-because-of-another-event
-@tasks.loop(seconds=20)
+@tasks.loop(minutes=1)
 async def my_background_task():
 
     #await bot.wait_until_ready() # ensures cache is loaded
