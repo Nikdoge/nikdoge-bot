@@ -139,7 +139,7 @@ async def my_background_task():
 
     #await bot.wait_until_ready() # ensures cache is loaded
     channel = bot.get_channel(763862682054557756) # NMS:status # replace with target channel id
-    answer_string = nms_checker.get_fresh_players_info()
+    answer_string = nms_checker.get_fresh_entering_players_info()
     if answer_string:
         log.info(answer_string)
         await channel.send(answer_string)
