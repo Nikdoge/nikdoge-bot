@@ -11,6 +11,9 @@ import check_minecraft_server
 FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
 FILENAME_LOG = 'nikdoge_bot.log'
 COMMAND_PREFIX = '/'
+CHANNEL_NMS_STATUS = 763862682054557756
+CHANNEL_NMS_TEST = 413080852759838725
+CHANNEL_NMS_STATUS = CHANNEL_NMS_TEST # for testing
 
 logging.basicConfig(
     level = logging.INFO,
@@ -135,11 +138,34 @@ async def georgian(ctx):
 
 #https://stackoverflow.com/questions/62069138/how-to-let-a-bot-post-send-a-message-every-5-minutes-or-because-of-another-event
 @tasks.loop(minutes=1)
-async def my_background_task():
-
+async def task_check_minecraft_server_players():
     #await bot.wait_until_ready() # ensures cache is loaded
-    channel = bot.get_channel(763862682054557756) # NMS:status # replace with target channel id
+    channel = bot.get_channel(CHANNEL_NMS_STATUS)
     answer_string = nms_checker.get_fresh_entering_players_info()
+    if answer_string:
+        log.info(answer_string)
+        await channel.send(answer_string)
+    #else:
+    #    log.info("NMS players amount unchanged")
+
+
+@tasks.loop(minutes=1) #change to everyday at 18:00
+async def task_check_daily():
+    channel = bot.get_channel(CHANNEL_NMS_TEST)
+    nms_updated,nms_latency,nms_players = nms_checker.get_server_status()
+    exch_table = exch.exchange_handler("--table")
+    exch_updated = f"{exch_table.split(' ')[1]} {exch_table.split(' ')[2]}"
+    exch_currencies = '\n'.join(exch_table.split('\n')[2:])
+    answer_string = f"""**Nikdoge's Minecraft Server**
+Карта: http://map.nikdoge.ru
+Пинг: {nms_latency}мс
+Игроков: {nms_players}
+Обновлено: {nms_updated}
+
+**Грузинский лари (GEL)**
+Валюта · Продать · Купить
+{exch_currencies}Источник: rico.ge
+Обновлено: {exch_updated}"""
     if answer_string:
         log.info(answer_string)
         await channel.send(answer_string)
@@ -152,11 +178,12 @@ async def on_ready():
     log.info(f'{bot.user} (ID: {bot.user.id}) is connected to the following guilds:')
     for guild in bot.guilds:
         log.info(f'{guild.id}: {guild.name}')
-    my_background_task.start()
+    task_check_minecraft_server_players.start()
+    task_check_daily.start()
         
 
 @bot.listen('on_message')
-async def whatever_you_want_to_call_it(message):
+async def react_at_some_text(message):
     if message.content.startswith('.help3'):
         response = 'Maybe try /nikdogebot instead'
         await message.channel.send(response)

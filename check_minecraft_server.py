@@ -1,4 +1,6 @@
 from mcstatus import JavaServer
+from datetime import datetime as dt
+import logging
 
 #SERVER_ADDRESS = "server.nikdoge.ru:25565"
 USE_QUERY_PROTOCOL = False
@@ -12,6 +14,7 @@ class Checker:
     players_amount = None
     players_amount_grew = None
     query_success = None
+    time_updated = None
 
     def __init__(self, server_address_port):
         self.server_address = server_address_port
@@ -84,6 +87,7 @@ class Checker:
         # Output result to class object
         self.players_amount = players_amount_new
         self.players = players_new
+        self.time_updated = dt.utcnow()
 
 
     def get_fresh_entering_players_info(self):
@@ -102,3 +106,9 @@ class Checker:
             return f"{self.players_amount} player(s) on minecraft server: {', '.join(sorted(self.players))}"
         else:
             return None
+        
+    def get_server_status(self):
+        info_updated = self.time_updated.strftime("%Y-%m-%d %H:%M UTC")
+        status = self._get_status()
+        latency = round(status.latency,2)
+        return info_updated, latency, self.players_amount
