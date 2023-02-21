@@ -69,8 +69,12 @@ class Exchange:
             if curr == self.base_currency: break
             string = f"{curr}:  {str(price['buy'])}  {str(price['sell'])}\n"
             answer += string
-
         return answer
+
+    def get_table_data(self):
+        updated_time = f"{dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}"
+        exchange_info = self.exchange_info
+        return exchange_info, updated_time
 
     def analyze_input_string(self, to_analyze=list()):
         """Receives list of amount and currencies from input
