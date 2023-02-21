@@ -155,7 +155,8 @@ async def task_check_daily():
     nms_updated,nms_latency,nms_players = nms_checker.get_server_status()
     exch_info, exch_updated = exch.get_table_data()
     exch_currencies = ''
-    [exch_currencies.append(f"{curr} · {str(price['buy'])} · {str(price['sell'])}\n") for curr,price in exch_info.items() if curr in ['RUB','USD','EUR','TRY','ILS','AMD','GBP']]
+    for curr,price in exch_info.items() if curr in ['RUB','USD','EUR','TRY','ILS','AMD','GBP']
+        exch_currencies+=(f"{curr} · {str(price['buy'])} · {str(price['sell'])}\n")
     answer_string = f"""**Nikdoge's Minecraft Server**
 Карта: http://map.nikdoge.ru
 Игроков: {nms_players}
