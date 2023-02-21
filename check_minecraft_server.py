@@ -62,7 +62,10 @@ class Checker:
         # Use status protocol if query disabled or failed
         if use_query_protocol == False:
             status = self._get_status()
-            players_new = set([elem.name for elem in status.players.sample])
+            if status.players.sample == None:
+                players_new = None
+            else:
+                players_new = set([elem.name for elem in status.players.sample])
             players_amount_new = status.players.online
         # Analyze data
         if use_query_protocol:
