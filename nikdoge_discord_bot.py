@@ -7,6 +7,7 @@ from discord.ext import commands, tasks
 import logging
 import exchange_handler
 import check_minecraft_server
+from datetime import time
 
 FFMPEG_EXECUTABLE = nikdoge.undump_json('nikdoge_bot_settings.json')['FFMPEG_EXECUTABLE']#"C:/Program Files/ffmpeg/bin/ffmpeg.exe"
 FILENAME_LOG = 'nikdoge_bot.log'
@@ -149,13 +150,14 @@ async def task_check_minecraft_server_players():
     #    log.info("NMS players amount unchanged")
 
 
-@tasks.loop(minutes=1) #change to everyday at 18:00
+@tasks.loop(time=time(hour=13,minute=00))
 async def task_check_daily():
-    channel = bot.get_channel(CHANNEL_NMS_TEST)
+    channel = bot.get_channel(CHANNEL_NMS_STATUS)
     nms_updated,nms_latency,nms_players = nms_checker.get_server_status()
     exch_info, exch_updated = exch.get_table_data()
     exch_currencies = ''
-    for curr,price in exch_info.items() if curr in ['RUB','USD','EUR','TRY','ILS','AMD','GBP']
+    for curr,price in exch_info.items():
+        if curr not in ['RUB','USD','EUR','TRY','ILS','AMD','GBP']: continue
         exch_currencies+=(f"{curr} · {str(price['buy'])} · {str(price['sell'])}\n")
     answer_string = f"""**Nikdoge's Minecraft Server**
 Карта: http://map.nikdoge.ru
@@ -169,7 +171,11 @@ async def task_check_daily():
 Обновлено: {exch_updated}"""
     if answer_string:
         log.info(answer_string)
-        await channel.send(answer_string)
+        embed=discord.Embed(
+            title="Vibe check",
+            description=answer_string,
+            color=0xB5E51D)
+        await channel.send(embed=embed)
     #else:
     #    log.info("NMS players amount unchanged")
 
