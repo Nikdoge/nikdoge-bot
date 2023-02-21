@@ -153,13 +153,13 @@ async def task_check_minecraft_server_players():
 async def task_check_daily():
     channel = bot.get_channel(CHANNEL_NMS_TEST)
     nms_updated,nms_latency,nms_players = nms_checker.get_server_status()
-    exch_table = exch.exchange_handler("--table")
-    exch_updated = f"{exch_table.split(' ')[1]} {exch_table.split(' ')[2]}"
-    exch_currencies = '\n'.join(exch_table.split('\n')[2:])
+    exch_info, exch_updated = exch.get_table_data()
+    exch_currencies = ''
+    [exch_currencies.append(f"{curr} · {str(price['buy'])} · {str(price['sell'])}\n") for curr,price in exch_info.items() if curr in ['RUB','USD','EUR','TRY','ILS','AMD','GBP']]
     answer_string = f"""**Nikdoge's Minecraft Server**
 Карта: http://map.nikdoge.ru
-Пинг: {nms_latency}мс
 Игроков: {nms_players}
+Пинг: {nms_latency}мс
 Обновлено: {nms_updated}
 
 **Грузинский лари (GEL)**
