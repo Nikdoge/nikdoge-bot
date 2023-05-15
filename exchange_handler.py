@@ -45,9 +45,9 @@ class Exchange:
         self.time_to_cache = 5*60 #in seconds, how long to cache exchange info, received from feed module
         self.route_too_long = 15 #maximum lenght of crossrate route: if 4, then "1000 RUB GEL USD EUR" is maximum
 
-        self.exchange_info, self.data_date, self.last_updated = self.get_exchange_data()
+        self.refresh_exchange_data()
 
-    def get_exchange_data(self):
+    def refresh_exchange_data(self):
         timestamp_now = dt.utcnow()
         exchange_data, timestamp, last_updated = self.exchange_info, self.data_date, self.last_updated
 
@@ -60,7 +60,7 @@ class Exchange:
         else:
             self.log.info('Getting data not from exchange gateway, but what was cached earlier')
 
-        return exchange_data,timestamp,last_updated
+        self.exchange_info, self.data_date, self.last_updated = exchange_data,timestamp,last_updated
 
     def make_table(self):
         answer = f"rico.ge {dt.fromisoformat(self.data_date).strftime('%Y-%m-%d %H:%M UTC')}"+'\n'
@@ -248,7 +248,7 @@ class Exchange:
         args = self.parser.parse_args(string.split())
         self.log.info(args)
 
-        self.exchange_info, self.data_date, self.last_updated = self.get_exchange_data()
+        self.refresh_exchange_data()
         if args.sequence == []:
             if args.table == True:
                 return self.make_table()

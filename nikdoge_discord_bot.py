@@ -153,6 +153,7 @@ async def task_check_minecraft_server_players():
 async def task_check_daily():
     channel = bot.get_channel(CHANNEL_NMS_STATUS)
     nms_updated,nms_latency,nms_players = nms_checker.get_server_status()
+    exch.refresh_exchange_data()
     exch_info, exch_updated = exch.get_table_data()
     exch_currencies = ''
     for curr,price in exch_info.items():
