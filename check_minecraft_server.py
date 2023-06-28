@@ -2,7 +2,7 @@ from mcstatus import JavaServer
 from datetime import datetime as dt
 import logging
 
-#SERVER_ADDRESS = "server.nikdoge.ru:25565"
+SERVER_ADDRESS = "server.nikdoge.ru:25565"
 USE_QUERY_PROTOCOL = False
 
 class Checker:
@@ -15,6 +15,8 @@ class Checker:
     players_amount_grew = None
     query_success = None
     time_updated = None
+    time_first_fail = None
+    time_last_success = None
 
     def __init__(self, server_address_port):
         self.server_address = server_address_port
@@ -61,12 +63,17 @@ class Checker:
                 use_query_protocol = False
         # Use status protocol if query disabled or failed
         if use_query_protocol == False:
-            status = self._get_status()
-            if status.players.sample == None:
-                players_new = None
-            else:
-                players_new = set([elem.name for elem in status.players.sample])
-            players_amount_new = status.players.online
+            try:
+                status = self._get_status()
+                if status.players.sample == None:
+                    players_new = None
+                else:
+                    players_new = set([elem.name for elem in status.players.sample])
+                players_amount_new = status.players.online
+            except TimeoutError as e:
+                if self.time_first_fail == None:
+                    self.time_first_fail = dt.utcnow()
+                return #if server cannot be reached
         # Analyze data
         if use_query_protocol:
             # In query protocol we can trust player list, so we compare it
@@ -91,6 +98,7 @@ class Checker:
         self.players_amount = players_amount_new
         self.players = players_new
         self.time_updated = dt.utcnow()
+        self.time_first_fail = None
 
 
     def get_fresh_entering_players_info(self):
@@ -111,7 +119,24 @@ class Checker:
             return None
         
     def get_server_status(self):
+        if not self.time_updated:
+            self.refresh_data()
+        if self.time_first_fail:
+            return self.time_first_fail.strftime("%Y-%m-%d %H:%M UTC"), "UNAVAILABLE", "UNAVAILABLE"
         info_updated = self.time_updated.strftime("%Y-%m-%d %H:%M UTC")
         status = self._get_status()
         latency = round(status.latency,2)
         return info_updated, latency, self.players_amount
+    
+def main():
+    nms_checker = Checker(SERVER_ADDRESS)
+    nms_updated,nms_latency,nms_players = nms_checker.get_server_status()
+    answer_string = f"""**Nikdoge's Minecraft Server**
+Карта: http://map.nikdoge.ru
+Игроков: {nms_players}
+Пинг: {nms_latency}мс
+Обновлено: {nms_updated}"""
+    print(answer_string)
+
+if __name__ == '__main__':
+    main()
