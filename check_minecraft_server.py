@@ -58,7 +58,7 @@ class Checker:
                 self.query_success = True
                 players_new = set(self._get_players())
                 players_amount_new = len(players_new)
-            except TimeoutError as e:
+            except Exception as e:
                 self.query_success = False
                 use_query_protocol = False
         # Use status protocol if query disabled or failed
@@ -70,7 +70,7 @@ class Checker:
                 else:
                     players_new = set([elem.name for elem in status.players.sample])
                 players_amount_new = status.players.online
-            except TimeoutError as e:
+            except Exception as e:
                 if self.time_first_fail == None:
                     self.time_first_fail = dt.utcnow()
                 return #if server cannot be reached
